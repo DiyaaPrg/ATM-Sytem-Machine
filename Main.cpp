@@ -11,7 +11,7 @@ string seperator = "#...#";
 
 enum enATMSystemOptions
 {
-    QuickWithDraw = 1, NormalWithdraw = 2, Deposit = 3, CheckBalance = 4, ChangePInCode = 5, Logout = 6
+    QuickWithDraw = 1, NormalWithdraw = 2, Deposit = 3, CheckBalance = 4, TransferMoney = 5, ChangePInCode = 6 , Logout = 7
 };
 
 enum enQuickWithDrawOptions {
@@ -28,7 +28,7 @@ struct stClientsInfo {
     bool   MarkForDelete = false;
 };
 
-stClientsInfo Client;
+stClientsInfo Client1, Client2;
 
 void ShowATMSystemMainScreen();
 
@@ -37,6 +37,7 @@ void GoBackToATMSytemMenu();
 void Login();
 
 void QuickWithdraw(int Amount);
+void ShowTransferMoneyScreen();
 
 stClientsInfo ConvertLineToRecord(string line)
 {
@@ -108,11 +109,11 @@ void ShowClientBalance()
     cout << "\tCheck Balance Screen\n";
     cout << "\n=================================\n";
 
-    cout << "Your Balance is: " << Client.Balance << "\n\n";
+    cout << "Your Balance is: " << Client1.Balance << "\n\n";
     
 }
 
-void DepositOrWithdraw(int amount)
+void DepositOrWithdraw(int amount, stClientsInfo &Client)
 {
     vector <stClientsInfo> VClientsInfo = LoadDataFromFileToVector();
 
@@ -138,9 +139,9 @@ void PerformDepositOperation()
 
     if (answer == "y" || answer == "Y")
     {
-        DepositOrWithdraw(AmountToDespoit);
+        DepositOrWithdraw(AmountToDespoit, Client1);
 
-        cout << "\nDone successfully. New Balance is: " << Client.Balance << endl;
+        cout << "\nDone successfully. New Balance is: " << Client1.Balance << endl;
     }
 }
 
@@ -158,7 +159,7 @@ void ShowDepositScreen()
 
 bool CheckBalanceToWithdraw(int amount)
 {
-    if (Client.Balance >= amount)
+    if (Client1.Balance >= amount)
     {
         return true;
     }
@@ -248,7 +249,7 @@ void ShowQuickWithDrawScreen()
     cout << "\t[9] Exit\n";
     cout << "\n=========================================\n";
 
-    cout << "Your balance is: " << Client.Balance << endl;
+    cout << "Your balance is: " << Client1.Balance << endl;
     PerformQuickWithdrawMenu(enQuickWithDrawOptions(Num::ReadNumberFromTo("\nChoose what to withdraw from [1] to [8]: ", 1, 9)));
 }
 
@@ -273,9 +274,9 @@ void PerformNoramlWithdrawOperation()
 
     if (answer == "y" || answer == "Y")
     {
-        DepositOrWithdraw(AmounttoWithdraw * -1);
+        DepositOrWithdraw(AmounttoWithdraw * -1, Client1);
 
-        cout << "\nDone successfully. New Balance is: " << Client.Balance << endl;
+        cout << "\nDone successfully. New Balance is: " << Client1.Balance << endl;
 
     }
 
@@ -319,9 +320,9 @@ void QuickWithdraw(int Amount)
 
     if (answer == "y" || answer == "Y")
     {
-        DepositOrWithdraw(Amount * -1);
+        DepositOrWithdraw(Amount * -1, Client1);
 
-        cout << "\nDone successfully. New Balance is: " << Client.Balance << endl;
+        cout << "\nDone successfully. New Balance is: " << Client1.Balance << endl;
     }
 
 }
@@ -357,18 +358,18 @@ void SaveNewPasswordToFile(string NewPass)
 
     for (stClientsInfo& C : VClientsInfo)
     {
-        if (Client.AccountNumber == C.AccountNumber)
+        if (Client1.AccountNumber == C.AccountNumber)
         {
-            Client.PinCode = NewPass;
-            C = Client;
+            Client1.PinCode = NewPass;
+            C = Client1;
         }
     }
     LoadDataFromVectortoFile(VClientsInfo);
 }
 
-void PerformChangePasswordOperation()
+void ReadAndCheckCurrentPassword(string message)
 {
-    string currentpass, NewPass;
+    string currentpass;
     bool WrongPass = false;
     do
     {
@@ -377,12 +378,21 @@ void PerformChangePasswordOperation()
             cout << "Wrong Password! Please Try again!";
         }
 
-        cout << "\nEnter Current PIN Code: ";
+        cout << message;
         getline(cin >> ws, currentpass);
 
-        WrongPass = (Client.PinCode != currentpass) ? true : false;
+        WrongPass = (Client1.PinCode != currentpass) ? true : false;
 
     } while (WrongPass);
+
+    return;
+}
+
+void PerformChangePasswordOperation()
+{
+    string NewPass;
+    
+    ReadAndCheckCurrentPassword("\nEnter Current PIN Code: ");
 
     NewPass = ReadAndCheckCorrectPassword();
     
@@ -402,6 +412,117 @@ void ShowChangePasswordScreen()
     cout << "\n=================================\n";
 
     PerformChangePasswordOperation();
+}
+
+void PrintClientInfo(stClientsInfo Client)
+{
+    cout << "\nThe following are the clients details:\n";
+    cout << "----------------------------------------\n";
+    cout << "\nAccount Number  : " << Client.AccountNumber;
+    cout << "\nName            : " << Client.Name;
+    cout << "\nPhone           : " << Client.Phone;
+    cout << "\n----------------------------------------\n";
+
+}
+
+bool IsClientExisteByAccountNumber(stClientsInfo& Client, string accountnumber)
+{
+    vector <stClientsInfo> vClientData = LoadDataFromFileToVector();
+
+    for (stClientsInfo& client : vClientData)
+    {
+        if (client.AccountNumber == accountnumber)
+        {
+            Client = client;
+            return true;
+        }
+    }
+    return false;
+}
+
+void FindClient2ToTransferMoney(stClientsInfo& Client)
+{
+    bool NotFound = false;
+    string AccountNumber;
+    do
+    {
+        if (NotFound)
+        {
+            cout << "\nClient with Account Number [" << AccountNumber << "] isn't found!\n";
+        }
+        cout << "\nEnter Account Number of the client you want to transfer to: ";
+        getline(cin >> ws, AccountNumber);
+
+        NotFound = (!IsClientExisteByAccountNumber(Client2, AccountNumber)) ? true : false;
+
+
+    } while (NotFound);
+
+    PrintClientInfo(Client);
+    return;
+}
+
+void PerformTransferMoneyOperation()
+{
+    //Step 1:
+    FindClient2ToTransferMoney(Client2);
+
+    string confirm;
+    cout << "\nPlease confirm that this is the user you want to transfer money to (y/n): ";
+    getline(cin >> ws, confirm);
+
+    if (confirm == "Y" || confirm == "y")
+    {
+        //Step 2:
+        cout << "\nYour Account Balance is: " << Client1.Balance << endl;
+        int MoneyToTransfer = Num::ReadPositiveNumber("Enter the amount of money you want to transfer: ");
+
+        if (!CheckBalanceToWithdraw(MoneyToTransfer))
+            return;
+
+
+        cout << "\nPlease confirm to transfer the money (y/n): ";
+        getline(cin >> ws, confirm);
+
+        if (confirm == "Y" || confirm == "y")
+        {
+            ReadAndCheckCurrentPassword("\nEnter your PIN Code: ");
+
+            // Withdraw money from client1
+            DepositOrWithdraw(MoneyToTransfer * -1, Client1);
+            // Deposit money to client2
+            DepositOrWithdraw(MoneyToTransfer, Client2);
+
+            cout << "\nDone successfully! The operation has completed!\n";
+        }
+        else
+        {
+            cout << "\n The operation has failed!\n";
+            return;
+        }
+            
+
+
+
+    }
+
+    else
+    {
+        ShowTransferMoneyScreen();
+    }
+    
+
+}
+
+void ShowTransferMoneyScreen()
+{
+    system("cls");
+
+    cout << "\n=================================\n";
+    cout << "\tTransfer Money";
+    cout << "\n=================================\n";
+
+    PerformTransferMoneyOperation();
 }
 
 void GoBackToATMSytemMenu()
@@ -462,6 +583,12 @@ void PerformATMSytemMenu(enATMSystemOptions option)
         GoBackToATMSytemMenu();
         break;
     }
+    case (enATMSystemOptions::TransferMoney):
+    {
+        ShowTransferMoneyScreen();
+        GoBackToATMSytemMenu();
+        break;
+    }
     case(enATMSystemOptions::ChangePInCode):
     {
         ShowChangePasswordScreen();
@@ -486,11 +613,12 @@ void ShowATMSystemMainScreen()
     cout << "\t [2] Noraml Withdraw \n";
     cout << "\t [3] Deposit \n";
     cout << "\t [4] Check Balance \n";
-    cout << "\t [5] Change PIN Code \n";
-    cout << "\t [6] Logout \n";
+    cout << "\t [5] Transfer Money \n";
+    cout << "\t [6] Change PIN Code \n";
+    cout << "\t [7] Logout \n";
     cout << "\n=====================================\n";
 
-    PerformATMSytemMenu(enATMSystemOptions(Num::ReadPositiveNumber("Choose What do you want to do? [1 to 6]: ")));
+    PerformATMSytemMenu(enATMSystemOptions(Num::ReadPositiveNumber("Choose What do you want to do? [1 to 7]: ")));
 
 }
 
@@ -518,7 +646,7 @@ void Login()
 
         PinCode = str::Readtext("Enter Pin Code: ");
 
-        IsValidLogin = FindClientByAccountNumberAndPinCode(AccountNumber, PinCode, Client);
+        IsValidLogin = FindClientByAccountNumberAndPinCode(AccountNumber, PinCode, Client1);
 
 
     } while (!IsValidLogin);
