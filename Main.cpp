@@ -11,7 +11,7 @@ string seperator = "#...#";
 
 enum enATMSystemOptions
 {
-    QuickWithDraw = 1, NormalWithdraw = 2, Deposit = 3, CheckBalance = 4, Logout = 5
+    QuickWithDraw = 1, NormalWithdraw = 2, Deposit = 3, CheckBalance = 4, ChangePInCode = 5, Logout = 6
 };
 
 enum enQuickWithDrawOptions {
@@ -326,6 +326,84 @@ void QuickWithdraw(int Amount)
 
 }
 
+string ReadAndCheckCorrectPassword()
+{
+    string NewPass;
+    bool validPassword = true;
+    do {
+        cout << "\nEnter the new password: ";
+        getline(cin >> ws, NewPass);
+
+        if (NewPass.size() < 8 || NewPass.size() > 12) {
+            cout << "\nPIN Code should be between 8 and 12 characters\n";
+        }
+        else if (str::CountCapitalLetters(NewPass) == 0 ||
+            str::CountSmallLetters(NewPass) == 0 ||
+            str::CountSpecialCharacters(NewPass) == 0) {
+            cout << "\nWeak PIN, PIN Code should include Small & Capital letters & Special Characters\n";
+        }
+        else {
+            validPassword = true;
+        }
+    } while (!validPassword);
+
+    return NewPass;
+
+}
+
+void SaveNewPasswordToFile(string NewPass)
+{
+    vector <stClientsInfo> VClientsInfo = LoadDataFromFileToVector();
+
+    for (stClientsInfo& C : VClientsInfo)
+    {
+        if (Client.AccountNumber == C.AccountNumber)
+        {
+            Client.PinCode = NewPass;
+            C = Client;
+        }
+    }
+    LoadDataFromVectortoFile(VClientsInfo);
+}
+
+void PerformChangePasswordOperation()
+{
+    string currentpass, NewPass;
+    bool WrongPass = false;
+    do
+    {
+        if (WrongPass)
+        {
+            cout << "Wrong Password! Please Try again!";
+        }
+
+        cout << "\nEnter Current PIN Code: ";
+        getline(cin >> ws, currentpass);
+
+        WrongPass = (Client.PinCode != currentpass) ? true : false;
+
+    } while (WrongPass);
+
+    NewPass = ReadAndCheckCorrectPassword();
+    
+    cout << "\nDone successfully, Your New Pin Code is: " << NewPass << endl;
+
+    //save in file
+    SaveNewPasswordToFile(NewPass);
+
+}
+
+void ShowChangePasswordScreen()
+{
+    system("cls");
+
+    cout << "\n=================================\n";
+    cout << "\tChange PIN Code";
+    cout << "\n=================================\n";
+
+    PerformChangePasswordOperation();
+}
+
 void GoBackToATMSytemMenu()
 {
     cout << "\n\nPress any key to go back to Main Menue...";
@@ -384,6 +462,12 @@ void PerformATMSytemMenu(enATMSystemOptions option)
         GoBackToATMSytemMenu();
         break;
     }
+    case(enATMSystemOptions::ChangePInCode):
+    {
+        ShowChangePasswordScreen();
+        GoBackToATMSytemMenu();
+        break;
+    }
     case(enATMSystemOptions::Logout ):
 
         Login();
@@ -402,10 +486,11 @@ void ShowATMSystemMainScreen()
     cout << "\t [2] Noraml Withdraw \n";
     cout << "\t [3] Deposit \n";
     cout << "\t [4] Check Balance \n";
-    cout << "\t [5] Logout \n";
+    cout << "\t [5] Change PIN Code \n";
+    cout << "\t [6] Logout \n";
     cout << "\n=====================================\n";
 
-    PerformATMSytemMenu(enATMSystemOptions(Num::ReadPositiveNumber("Choose What do you want to do? [1 to 5]: ")));
+    PerformATMSytemMenu(enATMSystemOptions(Num::ReadPositiveNumber("Choose What do you want to do? [1 to 6]: ")));
 
 }
 
